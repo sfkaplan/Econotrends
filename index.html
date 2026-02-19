@@ -343,6 +343,7 @@
     <button class="tab-btn active" onclick="switchTab('gdp', this)">PBI per Cápita PPP</button>
     <button class="tab-btn" onclick="switchTab('exp', this)">Gasto Público / PBI</button>
     <button class="tab-btn" onclick="switchTab('inv', this)">Inversión / PBI</button>
+    <button class="tab-btn" onclick="switchTab('sav', this)">Ahorro Doméstico / PBI</button>
     <button class="tab-btn" onclick="switchTab('scatter', this)">Dispersión</button>
   </div>
 
@@ -400,6 +401,24 @@
     <div class="stats-grid" id="inv-stats"></div>
   </div>
 
+  <!-- Savings Panel -->
+  <div class="panel" id="panel-sav">
+    <div class="panel-title">Ahorro Doméstico Bruto (% del PBI)</div>
+    <p class="panel-desc">Gross Domestic Savings como porcentaje del PBI · 1990–2023 · Fuente: World Bank NY.GDS.TOTL.ZS</p>
+    <div class="range-row">
+      <label>Desde</label>
+      <input type="range" id="sav-from" min="1990" max="2022" value="1990" step="1" oninput="updateSavRange()">
+      <span class="range-val" id="sav-from-val">1990</span>
+      <label>Hasta</label>
+      <input type="range" id="sav-to" min="1991" max="2023" value="2023" step="1" oninput="updateSavRange()">
+      <span class="range-val" id="sav-to-val">2023</span>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="savChart"></canvas>
+    </div>
+    <div class="stats-grid" id="sav-stats"></div>
+  </div>
+
   <!-- Scatter Panel -->
   <div class="panel" id="panel-scatter">
     <div class="panel-title">Gasto Público vs. PBI per Cápita</div>
@@ -421,6 +440,7 @@
     Nota metodológica: Los datos de PBI per cápita PPP provienen de World Development Indicators (World Bank), en dólares internacionales constantes de 2021.
     El gasto público corresponde al indicador "General Government Total Expenditure" del IMF Fiscal Monitor (% del PBI).
     La inversión corresponde a "Gross Fixed Capital Formation" (NE.GDI.FTOT.ZS) del World Bank WDI (% del PBI).
+    El ahorro doméstico corresponde a "Gross Domestic Savings" (NY.GDS.TOTL.ZS) del World Bank WDI (% del PBI).
     Valores posteriores a 2023 en gasto público son proyecciones del FMI. Los datos fueron incorporados manualmente a partir de las series oficiales publicadas por ambos organismos.
   </footer>
 
@@ -888,6 +908,102 @@ function updateInvRange() {
   invChart.update();
 }
 
+// Gross Domestic Savings (% of GDP) — World Bank NY.GDS.TOTL.ZS
+const savData = {
+  years: [1990,1991,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023],
+  ARG: [19.6,18.0,17.2,18.0,19.2,18.5,19.8,20.4,19.0,15.0,17.1,16.0,24.0,27.8,29.4,29.4,31.2,31.5,30.6,25.3,26.5,27.4,24.7,24.2,22.9,21.2,19.6,22.4,22.3,20.7,20.4,25.4,26.9,24.2],
+  BRA: [20.3,19.2,18.5,19.5,19.7,17.3,16.9,17.2,16.4,14.7,15.6,15.3,17.5,18.9,21.3,21.8,22.5,22.8,22.8,17.9,22.2,21.9,21.0,19.7,18.4,15.2,14.5,15.1,15.9,14.9,17.2,20.6,20.2,17.1],
+  CHL: [27.3,24.0,23.5,24.4,25.6,26.0,25.5,25.7,23.7,21.4,23.3,22.3,23.5,25.5,28.9,30.6,31.4,30.5,30.1,26.1,31.5,32.6,31.5,30.8,28.8,23.8,23.3,24.2,25.2,23.8,24.0,29.4,32.2,30.1],
+  URY: [15.4,14.3,15.1,16.0,16.8,15.4,16.2,16.7,15.1,12.5,12.9,11.7,14.8,18.1,20.5,22.1,24.3,24.9,22.3,20.2,22.5,23.4,22.2,22.0,20.7,19.9,20.0,19.9,18.7,17.9,19.2,22.4,21.8,19.3],
+  PRY: [18.2,16.8,17.2,19.1,18.0,16.8,16.5,16.3,15.5,13.0,14.0,13.8,16.9,19.3,21.9,22.3,22.2,23.2,23.6,21.0,22.7,23.6,23.5,23.9,23.4,22.5,22.4,23.2,24.1,22.2,22.3,24.9,26.3,24.5],
+};
+
+// ─── SAVINGS CHART ────────────────────────────────────────────────────────
+let savChart;
+let savFrom = 1990, savTo = 2023;
+
+function makeSavDatasets(from, to) {
+  const idxFrom = savData.years.indexOf(from);
+  const idxTo   = savData.years.indexOf(to);
+  const labels  = savData.years.slice(idxFrom, idxTo + 1);
+  const datasets = countries.map(c => ({
+    label: COLORS[c].label,
+    data: savData[c].slice(idxFrom, idxTo + 1),
+    borderColor: COLORS[c].line,
+    backgroundColor: COLORS[c].bg,
+    borderWidth: 2,
+    pointRadius: 0,
+    pointHoverRadius: 5,
+    tension: 0.35,
+    fill: false,
+    hidden: !activeCountries.has(c),
+  }));
+  return { labels, datasets };
+}
+
+function buildSavChart() {
+  const ctx = document.getElementById('savChart').getContext('2d');
+  const { labels, datasets } = makeSavDatasets(savFrom, savTo);
+  savChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      ...JSON.parse(JSON.stringify(chartDefaults)),
+      plugins: {
+        ...JSON.parse(JSON.stringify(chartDefaults.plugins)),
+        tooltip: {
+          ...JSON.parse(JSON.stringify(chartDefaults.plugins.tooltip)),
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}% del PBI`
+          }
+        }
+      },
+      scales: {
+        x: { ...JSON.parse(JSON.stringify(chartDefaults.scales.x)) },
+        y: {
+          ...JSON.parse(JSON.stringify(chartDefaults.scales.y)),
+          ticks: {
+            color: '#6b7394',
+            font: { family: 'DM Mono', size: 10 },
+            callback: v => v + '%'
+          }
+        }
+      }
+    }
+  });
+  buildSavStats();
+}
+
+function buildSavStats() {
+  const el = document.getElementById('sav-stats');
+  el.innerHTML = countries.map(c => {
+    const lastIdx = savData.years.indexOf(2023);
+    const prevIdx = savData.years.indexOf(2022);
+    const last = savData[c][lastIdx];
+    const prev = savData[c][prevIdx];
+    const ch = (last - prev).toFixed(1);
+    const chClass = parseFloat(ch) >= 0 ? 'pos' : 'neg';
+    const chSign  = parseFloat(ch) >= 0 ? '+' : '';
+    return `<div class="stat-card" style="border-top-color:${COLORS[c].line}">
+      <div class="stat-label">${COLORS[c].label}</div>
+      <div class="stat-value" style="color:${COLORS[c].line}">${last}%</div>
+      <div class="stat-change"><span class="${chClass}">${chSign}${ch} pp</span> vs 2022</div>
+    </div>`;
+  }).join('');
+}
+
+function updateSavRange() {
+  savFrom = parseInt(document.getElementById('sav-from').value);
+  savTo   = parseInt(document.getElementById('sav-to').value);
+  if (savFrom >= savTo) { savTo = savFrom + 1; document.getElementById('sav-to').value = savTo; }
+  document.getElementById('sav-from-val').textContent = savFrom;
+  document.getElementById('sav-to-val').textContent   = savTo;
+  const { labels, datasets } = makeSavDatasets(savFrom, savTo);
+  savChart.data.labels = labels;
+  savChart.data.datasets.forEach((ds, i) => { ds.data = datasets[i].data; });
+  savChart.update();
+}
+
 // ─── TABS ────────────────────────────────────────────────────────────────
 function switchTab(name, btn) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -919,6 +1035,10 @@ function toggleCountry(c, el) {
     invChart.data.datasets[cIdx].hidden = !activeCountries.has(c);
     invChart.update();
   }
+  if (savChart) {
+    savChart.data.datasets[cIdx].hidden = !activeCountries.has(c);
+    savChart.update();
+  }
   if (scatterChart) {
     scatterChart.data.datasets[cIdx].hidden = !activeCountries.has(c);
     scatterChart.update();
@@ -930,6 +1050,7 @@ window.addEventListener('DOMContentLoaded', () => {
   buildGdpChart();
   buildExpChart();
   buildInvChart();
+  buildSavChart();
   buildScatterChart();
 });
 </script>
