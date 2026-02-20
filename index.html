@@ -592,7 +592,7 @@ function buildGdpStats() {
     return `<div class="stat-card" style="border-top-color:${COLORS[c].line}">
       <div class="stat-label">${COLORS[c].label}</div>
       <div class="stat-value" style="color:${COLORS[c].line}">$${(last/1000).toFixed(1)}k</div>
-      <div class="stat-change"><span class="${chClass}">${chSign}${ch}%</span> vs 2022</div>
+      <div class="stat-change"><span class="${chClass}">${chSign}${ch}%</span> vs 2023</div>
     </div>`;
   }).join('');
 }
@@ -679,14 +679,14 @@ function buildExpStats() {
   el.innerHTML = countries.map(c => {
     const vals = expData[c];
     const last = vals[expData.years.indexOf(2024)];
-    const prev = vals[expData.years.indexOf(2022)];
+    const prev = vals[expData.years.indexOf(2023)];
     const ch = (last-prev).toFixed(1);
     const chClass = ch >= 0 ? 'pos' : 'neg';
     const chSign = ch >= 0 ? '+' : '';
     return `<div class="stat-card" style="border-top-color:${COLORS[c].line}">
       <div class="stat-label">${COLORS[c].label}</div>
       <div class="stat-value" style="color:${COLORS[c].line}">${last}%</div>
-      <div class="stat-change"><span class="${chClass}">${chSign}${ch} pp</span> vs 2022</div>
+      <div class="stat-change"><span class="${chClass}">${chSign}${ch} pp</span> vs 2023</div>
     </div>`;
   }).join('');
 }
@@ -891,7 +891,7 @@ function buildInvStats() {
     return `<div class="stat-card" style="border-top-color:${COLORS[c].line}">
       <div class="stat-label">${COLORS[c].label}</div>
       <div class="stat-value" style="color:${COLORS[c].line}">${last}%</div>
-      <div class="stat-change"><span class="${chClass}">${chSign}${ch} pp</span> vs 2022</div>
+      <div class="stat-change"><span class="${chClass}">${chSign}${ch} pp</span> vs 2023</div>
     </div>`;
   }).join('');
 }
@@ -987,7 +987,7 @@ function buildSavStats() {
     return `<div class="stat-card" style="border-top-color:${COLORS[c].line}">
       <div class="stat-label">${COLORS[c].label}</div>
       <div class="stat-value" style="color:${COLORS[c].line}">${last}%</div>
-      <div class="stat-change"><span class="${chClass}">${chSign}${ch} pp</span> vs 2022</div>
+      <div class="stat-change"><span class="${chClass}">${chSign}${ch} pp</span> vs 2023</div>
     </div>`;
   }).join('');
 }
