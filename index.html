@@ -425,7 +425,7 @@
     <p class="panel-desc">Relación entre tamaño del Estado y nivel de ingreso por habitante · cada punto = un año</p>
     <div class="range-row">
       <label>Año</label>
-      <input type="range" id="scatter-year" min="1995" max=35000 value="2023" step="1" oninput="updateScatter()">
+      <input type="range" id="scatter-year" min="1995" max="2023" value="2023" step="1" oninput="updateScatter()">
       <span class="range-val" id="scatter-year-val">2023</span>
       <label style="margin-left:12px; color:var(--text)">— o animación:</label>
       <button onclick="toggleAnimation()" id="anim-btn" style="background:var(--accent);border:none;color:#ffffff;font-family:'DM Mono',monospace;font-size:0.7rem;padding:6px 14px;cursor:pointer;border-radius:3px;font-weight:500">▶ PLAY</button>
@@ -763,7 +763,7 @@ function buildScatterChart() {
           grid: { color: 'rgba(0,0,0,0.06)' },
           ticks: { color: '#6b7394', font: { family: 'DM Mono', size: 10 }, callback: v => '$'+(v/1000).toFixed(0)+'k' },
           border: { color: '#dde1ee' },
-          min: 3000, max: 30000
+          min: 3000, max: 35000
         }
       }
     },
