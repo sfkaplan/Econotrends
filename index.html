@@ -350,14 +350,14 @@
   <!-- GDP Panel -->
   <div class="panel active" id="panel-gdp">
     <div class="panel-title">PBI per Cápita (PPP)</div>
-    <p class="panel-desc">USD constantes 2021 (paridad de poder adquisitivo) · 1990–2023</p>
+    <p class="panel-desc">USD constantes 2021 (paridad de poder adquisitivo) · 1990–2024</p>
     <div class="range-row">
       <label>Desde</label>
       <input type="range" id="gdp-from" min="1990" max="2022" value="1990" step="1" oninput="updateGdpRange()">
       <span class="range-val" id="gdp-from-val">1990</span>
       <label>Hasta</label>
-      <input type="range" id="gdp-to" min="1991" max="2023" value="2023" step="1" oninput="updateGdpRange()">
-      <span class="range-val" id="gdp-to-val">2023</span>
+      <input type="range" id="gdp-to" min="1991" max="2024" value="2024" step="1" oninput="updateGdpRange()">
+      <span class="range-val" id="gdp-to-val">2024</span>
     </div>
     <div class="chart-wrap">
       <canvas id="gdpChart"></canvas>
@@ -386,14 +386,14 @@
   <!-- Investment Panel -->
   <div class="panel" id="panel-inv">
     <div class="panel-title">Formación Bruta de Capital Fijo (% del PBI)</div>
-    <p class="panel-desc">Inversión total como porcentaje del PBI · 1990–2023 · Fuente: World Bank NE.GDI.FTOT.ZS</p>
+    <p class="panel-desc">Inversión total como porcentaje del PBI · 1990–2024 · Fuente: World Bank NE.GDI.FTOT.ZS</p>
     <div class="range-row">
       <label>Desde</label>
       <input type="range" id="inv-from" min="1990" max="2022" value="1990" step="1" oninput="updateInvRange()">
       <span class="range-val" id="inv-from-val">1990</span>
       <label>Hasta</label>
-      <input type="range" id="inv-to" min="1991" max="2023" value="2023" step="1" oninput="updateInvRange()">
-      <span class="range-val" id="inv-to-val">2023</span>
+      <input type="range" id="inv-to" min="1991" max="2024" value="2024" step="1" oninput="updateInvRange()">
+      <span class="range-val" id="inv-to-val">2024</span>
     </div>
     <div class="chart-wrap">
       <canvas id="invChart"></canvas>
@@ -404,14 +404,14 @@
   <!-- Savings Panel -->
   <div class="panel" id="panel-sav">
     <div class="panel-title">Ahorro Doméstico Bruto (% del PBI)</div>
-    <p class="panel-desc">Gross Domestic Savings como porcentaje del PBI · 1990–2023 · Fuente: World Bank NY.GDS.TOTL.ZS</p>
+    <p class="panel-desc">Gross Domestic Savings como porcentaje del PBI · 1990–2024 · Fuente: World Bank NY.GDS.TOTL.ZS</p>
     <div class="range-row">
       <label>Desde</label>
       <input type="range" id="sav-from" min="1990" max="2022" value="1990" step="1" oninput="updateSavRange()">
       <span class="range-val" id="sav-from-val">1990</span>
       <label>Hasta</label>
-      <input type="range" id="sav-to" min="1991" max="2023" value="2023" step="1" oninput="updateSavRange()">
-      <span class="range-val" id="sav-to-val">2023</span>
+      <input type="range" id="sav-to" min="1991" max="2024" value="2024" step="1" oninput="updateSavRange()">
+      <span class="range-val" id="sav-to-val">2024</span>
     </div>
     <div class="chart-wrap">
       <canvas id="savChart"></canvas>
@@ -523,9 +523,9 @@ const chartDefaults = {
 
 // ─── GDP CHART ───────────────────────────────────────────────────────────
 let gdpChart, expChart, scatterChart;
-let gdpFrom = 1990, gdpTo = 2023;
+let gdpFrom = 1990, gdpTo = 2024;
 let expFrom = 1995, expTo = 2029;
-let scatterYear = 2023;
+let scatterYear = 2024;
 let animInterval = null;
 
 function makeGdpDatasets(from, to) {
@@ -625,7 +625,7 @@ function makeExpDatasets(from, to) {
     tension: 0.35,
     fill: false,
     hidden: !activeCountries.has(c),
-    borderDash: from <= 2023 && to > 2023 ? [] : [],
+    borderDash: from <= 2024 && to > 2024 ? [] : [],
   }));
   // Mark projected years with dashed line
   datasets.forEach((ds, i) => {
@@ -678,7 +678,7 @@ function buildExpStats() {
   const el = document.getElementById('exp-stats');
   el.innerHTML = countries.map(c => {
     const vals = expData[c];
-    const last = vals[expData.years.indexOf(2023)];
+    const last = vals[expData.years.indexOf(2024)];
     const prev = vals[expData.years.indexOf(2022)];
     const ch = (last-prev).toFixed(1);
     const chClass = ch >= 0 ? 'pos' : 'neg';
@@ -813,7 +813,7 @@ function toggleAnimation() {
       document.getElementById('scatter-year-val').textContent = yr;
       updateScatter();
       yr++;
-      if (yr > 2023) {
+      if (yr > 2024) {
         clearInterval(animInterval);
         animInterval = null;
         btn.textContent = '▶ PLAY';
@@ -824,7 +824,7 @@ function toggleAnimation() {
 
 // ─── INVESTMENT CHART ────────────────────────────────────────────────────
 let invChart;
-let invFrom = 1990, invTo = 2023;
+let invFrom = 1990, invTo = 2024;
 
 function makeInvDatasets(from, to) {
   const idxFrom = invData.years.indexOf(from);
@@ -881,8 +881,8 @@ function buildInvChart() {
 function buildInvStats() {
   const el = document.getElementById('inv-stats');
   el.innerHTML = countries.map(c => {
-    const lastIdx = invData.years.indexOf(2023);
-    const prevIdx = invData.years.indexOf(2022);
+    const lastIdx = invData.years.indexOf(2024);
+    const prevIdx = invData.years.indexOf(2023);
     const last = invData[c][lastIdx];
     const prev = invData[c][prevIdx];
     const ch = (last - prev).toFixed(1);
@@ -920,7 +920,7 @@ const savData = {
 
 // ─── SAVINGS CHART ────────────────────────────────────────────────────────
 let savChart;
-let savFrom = 1990, savTo = 2023;
+let savFrom = 1990, savTo = 2024;
 
 function makeSavDatasets(from, to) {
   const idxFrom = savData.years.indexOf(from);
@@ -977,8 +977,8 @@ function buildSavChart() {
 function buildSavStats() {
   const el = document.getElementById('sav-stats');
   el.innerHTML = countries.map(c => {
-    const lastIdx = savData.years.indexOf(2023);
-    const prevIdx = savData.years.indexOf(2022);
+    const lastIdx = savData.years.indexOf(2024);
+    const prevIdx = savData.years.indexOf(2023);
     const last = savData[c][lastIdx];
     const prev = savData[c][prevIdx];
     const ch = (last - prev).toFixed(1);
