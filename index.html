@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Económico Sudamérica</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f6fa;
+    --surface: #ffffff;
+    --border: #dde1ee;
+    --accent: #1a56db;
+    --text: #1a1f36;
+    --muted: #6b7394;
+    --arg: #2563eb;
+    --bra: #16a34a;
+    --chl: #dc2626;
+    --ury: #d97706;
+    --pry: #7c3aed;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse 80% 50% at 20% 10%, rgba(37,99,235,0.05) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(124,58,237,0.04) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    margin-bottom: 48px;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .title-block h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+
+  .title-block h1 em {
+    color: var(--accent);
+    font-style: italic;
+  }
+
+  .subtitle {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 8px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .data-sources {
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-align: right;
+    line-height: 1.7;
+  }
+
+  .data-sources span {
+    display: block;
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 40px;
+    padding: 16px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 3px;
+    transition: background 0.2s;
+    user-select: none;
+  }
+
+  .legend-item:hover {
+    background: rgba(0,0,0,0.05);
+  }
+
+  .legend-item.inactive {
+    opacity: 0.35;
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .legend-label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+
+  .tab-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 8px 20px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s;
+  }
+
+  .tab-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0b0f1a;
+    font-weight: 500;
+  }
+
+  .tab-btn:hover:not(.active) {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Chart panels */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 28px;
+    margin-bottom: 24px;
+    display: none;
+  }
+
+  .panel.active { display: block; }
+
+  .panel-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.25rem;
+    margin-bottom: 6px;
+  }
+
+  .panel-desc {
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-bottom: 24px;
+    letter-spacing: 0.04em;
+  }
+
+  .chart-wrap {
+    position: relative;
+    height: 400px;
+  }
+
+  /* Stats row */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-top: 24px;
+  }
+
+  @media (max-width: 700px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .stat-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 14px;
+    border-top: 2px solid;
+  }
+
+  .stat-label {
+    font-size: 0.62rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .stat-value {
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+
+  .stat-change {
+    font-size: 0.65rem;
+    color: var(--muted);
+  }
+
+  .pos { color: #16a34a; }
+  .neg { color: #dc2626; }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 32px 0;
+  }
+
+  /* Range slider */
+  .range-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .range-row label {
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .range-row input[type=range] {
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .range-val {
+    font-size: 0.75rem;
+    color: var(--accent);
+    min-width: 80px;
+  }
+
+  /* Scatter panel */
+  .scatter-info {
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 12px;
+    text-align: center;
+  }
+
+  footer {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    line-height: 1.8;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="header-top">
+      <div class="title-block">
+        <h1>Economías del <em>Cono Sur</em></h1>
+        <p class="subtitle">Dashboard comparativo · Argentina · Brasil · Chile · Uruguay · Paraguay</p>
+      </div>
+      <div class="data-sources">
+        <span>Fuente PBI per cápita: World Bank WDI — NY.GDP.PCAP.PP.KD</span>
+        <span>Fuente Gasto Público: IMF (gasto total gobierno general, % del PBI)</span>
+        <span>Fuente Inversión: World Bank WDI — NE.GDI.FTOT.ZS</span>
+        <span>Dólares internacionales constantes 2021 (PPP)</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Legend -->
+  <div class="legend" id="legend">
+    <div class="legend-item" data-country="ARG" onclick="toggleCountry('ARG', this)">
+      <div class="legend-dot" style="background:var(--arg)"></div>
+      <span class="legend-label">Argentina</span>
+    </div>
+    <div class="legend-item" data-country="BRA" onclick="toggleCountry('BRA', this)">
+      <div class="legend-dot" style="background:var(--bra)"></div>
+      <span class="legend-label">Brasil</span>
+    </div>
+    <div class="legend-item" data-country="CHL" onclick="toggleCountry('CHL', this)">
+      <div class="legend-dot" style="background:var(--chl)"></div>
+      <span class="legend-label">Chile</span>
+    </div>
+    <div class="legend-item" data-country="URY" onclick="toggleCountry('URY', this)">
+      <div class="legend-dot" style="background:var(--ury)"></div>
+      <span class="legend-label">Uruguay</span>
+    </div>
+    <div class="legend-item" data-country="PRY" onclick="toggleCountry('PRY', this)">
+      <div class="legend-dot" style="background:var(--pry)"></div>
+      <span class="legend-label">Paraguay</span>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('gdp', this)">PBI per Cápita PPP</button>
+    <button class="tab-btn" onclick="switchTab('exp', this)">Gasto Público / PBI</button>
+    <button class="tab-btn" onclick="switchTab('inv', this)">Inversión / PBI</button>
+    <button class="tab-btn" onclick="switchTab('sav', this)">Ahorro Doméstico / PBI</button>
+    <button class="tab-btn" onclick="switchTab('scatter', this)">Dispersión</button>
+  </div>
+
+  <!-- GDP Panel -->
+  <div class="panel active" id="panel-gdp">
+    <div class="panel-title">PBI per Cápita (PPP)</div>
+    <p class="panel-desc">USD constantes 2021 (paridad de poder adquisitivo) · 1990–2024</p>
+    <div class="range-row">
+      <label>Desde</label>
+      <input type="range" id="gdp-from" min="1990" max="2022" value="1990" step="1" oninput="updateGdpRange()">
+      <span class="range-val" id="gdp-from-val">1990</span>
+      <label>Hasta</label>
+      <input type="range" id="gdp-to" min="1991" max="2024" value="2024" step="1" oninput="updateGdpRange()">
+      <span class="range-val" id="gdp-to-val">2024</span>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="gdpChart"></canvas>
+    </div>
+    <div class="stats-grid" id="gdp-stats"></div>
+  </div>
+
+  <!-- Expenditure Panel -->
+  <div class="panel" id="panel-exp">
+    <div class="panel-title">Gasto Público Total (% del PBI)</div>
+    <p class="panel-desc">Gobierno general · gasto total como porcentaje del PBI · 1995–2024 (IMF)</p>
+    <div class="range-row">
+      <label>Desde</label>
+      <input type="range" id="exp-from" min="1995" max="2023" value="1995" step="1" oninput="updateExpRange()">
+      <span class="range-val" id="exp-from-val">1995</span>
+      <label>Hasta</label>
+      <input type="range" id="exp-to" min="1996" max="2024" value="2024" step="1" oninput="updateExpRange()">
+      <span class="range-val" id="exp-to-val">2024</span>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="expChart"></canvas>
+    </div>
+    <div class="stats-grid" id="exp-stats"></div>
+  </div>
+
+  <!-- Investment Panel -->
+  <div class="panel" id="panel-inv">
+    <div class="panel-title">Formación Bruta de Capital Fijo (% del PBI)</div>
+    <p class="panel-desc">Inversión total como porcentaje del PBI · 1990–2024 · Fuente: World Bank NE.GDI.FTOT.ZS</p>
+    <div class="range-row">
+      <label>Desde</label>
+      <input type="range" id="inv-from" min="1990" max="2022" value="1990" step="1" oninput="updateInvRange()">
+      <span class="range-val" id="inv-from-val">1990</span>
+      <label>Hasta</label>
+      <input type="range" id="inv-to" min="1991" max="2024" value="2024" step="1" oninput="updateInvRange()">
+      <span class="range-val" id="inv-to-val">2024</span>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="invChart"></canvas>
+    </div>
+    <div class="stats-grid" id="inv-stats"></div>
+  </div>
+
+  <!-- Savings Panel -->
+  <div class="panel" id="panel-sav">
+    <div class="panel-title">Ahorro Doméstico Bruto (% del PBI)</div>
+    <p class="panel-desc">Gross Domestic Savings como porcentaje del PBI · 1990–2024 · Fuente: World Bank NY.GDS.TOTL.ZS</p>
+    <div class="range-row">
+      <label>Desde</label>
+      <input type="range" id="sav-from" min="1990" max="2022" value="1990" step="1" oninput="updateSavRange()">
+      <span class="range-val" id="sav-from-val">1990</span>
+      <label>Hasta</label>
+      <input type="range" id="sav-to" min="1991" max="2024" value="2024" step="1" oninput="updateSavRange()">
+      <span class="range-val" id="sav-to-val">2024</span>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="savChart"></canvas>
+    </div>
+    <div class="stats-grid" id="sav-stats"></div>
+  </div>
+
+  <!-- Scatter Panel -->
+  <div class="panel" id="panel-scatter">
+    <div class="panel-title">Gasto Público vs. PBI per Cápita</div>
+    <p class="panel-desc">Relación entre tamaño del Estado y nivel de ingreso por habitante · cada punto = un año</p>
+    <div class="range-row">
+      <label>Año</label>
+      <input type="range" id="scatter-year" min="1995" max="2024" value="2024" step="1" oninput="updateScatter()">
+      <span class="range-val" id="scatter-year-val">2024</span>
+      <label style="margin-left:12px; color:var(--text)">— o animación:</label>
+      <button onclick="toggleAnimation()" id="anim-btn" style="background:var(--accent);border:none;color:#ffffff;font-family:'DM Mono',monospace;font-size:0.7rem;padding:6px 14px;cursor:pointer;border-radius:3px;font-weight:500">▶ PLAY</button>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="scatterChart"></canvas>
+    </div>
+    <p class="scatter-info">Tamaño del punto proporcional al PBI per cápita relativo. Hover para ver datos.</p>
+  </div>
+
+  <footer>
+    Nota metodológica: Los datos de PBI per cápita PPP provienen de World Development Indicators (World Bank), en dólares internacionales constantes de 2021.
+    El gasto público corresponde al indicador "General Government Total Expenditure" del IMF Fiscal Monitor (% del PBI).
+    La inversión corresponde a "Gross Fixed Capital Formation" (NE.GDI.FTOT.ZS) del World Bank WDI (% del PBI).
+    El ahorro doméstico corresponde a "Gross Domestic Savings" (NY.GDS.TOTL.ZS) del World Bank WDI (% del PBI).
+    Los datos corresponden a series oficiales (World Bank WDI e IMF). Para gasto público se utiliza el indicador de gasto total del gobierno general (% del PBI) del IMF.
+  </footer>
+
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────
+// GDP per capita PPP (constant 2021 international $) — World Bank NY.GDP.PCAP.PP.KD
+const gdpData = {
+  years: [1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024],
+  ARG: [17007, 18296, 19476, 20791, 21712, 20819, 21696, 23172, 23783, 22715, 22281, 21066, 18572, 20005, 21591, 23262, 24877, 26851, 27658, 25747, 28056, 29426, 28826, 29228, 28201, 28669, 27802, 28335, 27367, 26630, 23877, 26300, 27825, 27230, 26772],
+  BRA: [12633, 12547, 12272, 12669, 13203, 13550, 13642, 13897, 13738, 13602, 14005, 14016, 14266, 14259, 14911, 15221, 15657, 16441, 17113, 16939, 18062, 18628, 18832, 19242, 19183, 18357, 17621, 17724, 17918, 18019, 17328, 18076, 18554, 19080, 19652],
+  CHL: [10953, 11608, 12736, 13377, 13846, 14908, 15745, 16684, 17157, 16896, 17525, 17870, 18240, 18903, 19962, 20919, 21969, 22879, 23510, 23014, 24117, 25366, 26670, 27291, 27505, 27811, 27959, 27893, 28493, 28219, 26249, 29090, 29569, 29564, 30183],
+  URY: [14061, 14475, 15536, 15865, 16932, 16600, 17434, 18824, 19578, 19193, 18752, 17987, 16573, 16694, 17519, 18811, 19560, 20804, 22249, 23138, 24880, 26099, 26953, 28119, 28935, 28942, 29333, 29762, 29758, 30011, 27788, 29432, 30805, 31059, 32039],
+  PRY: [9962, 10040, 9948, 10178, 10459, 10908, 10825, 11033, 10803, 10435, 9999, 9749, 9611, 9903, 10187, 10290, 10673, 11142, 11751, 11601, 12739, 13109, 12835, 13701, 14219, 14428, 14827, 15320, 15593, 15321, 14992, 15406, 15259, 15826, 16296],
+};
+
+// Government expenditure (% of GDP) — IMF Fiscal Monitor exp@FPP
+const expData = {
+  years: [1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024],
+  ARG: [14.4, 14.1, 22.6, 23.1, 25.5, 25.2, 26.4, 21.9, 22.0, 23.0, 24.4, 26.6, 29.6, 30.8, 34.5, 33.4, 34.9, 36.8, 37.6, 38.9, 41.4, 41.5, 41.1, 38.9, 38.1, 42.5, 37.9, 37.6, 37.6, 31.0],
+  BRA: [null, 38.2, 38.6, 40.9, 39.6, 34.5, 39.8, 44.5, 41.3, 39.7, 41.9, 42.6, 40.4, 39.9, 40.5, 39.5, 39.4, 39.3, 39.8, 41.4, 46.2, 45.5, 44.3, 44.2, 43.0, 46.2, 40.4, 43.4, 45.3, 45.7],
+  CHL: [18.7, 20.6, 20.6, 21.9, 23.7, 22.9, 23.2, 23.2, 22.2, 20.8, 20.2, 18.7, 19.3, 21.8, 25.0, 23.5, 22.9, 23.1, 23.1, 23.9, 25.0, 25.4, 25.5, 25.6, 26.5, 29.1, 33.6, 26.7, 27.4, 26.7],
+  URY: [26.2, 26.5, 27.6, 27.3, 27.2, 26.6, 27.8, 27.6, 27.7, 26.6, 26.3, 26.8, 26.8, 26.3, 27.2, 27.4, 26.3, 27.7, 28.8, 29.1, 28.4, 29.7, 29.7, 30.3, 30.6, 32.8, 30.2, 30.0, 30.5, 31.1],
+  PRY: [15.7, 16.9, 18.1, 18.0, 19.2, 19.6, 19.0, 17.6, 14.6, 14.0, 14.0, 14.1, 13.1, 11.8, 14.3, 13.3, 14.7, 17.6, 17.1, 17.1, 18.0, 17.7, 18.1, 18.5, 20.1, 22.6, 20.4, 20.2, 21.5, 21.0],
+};
+
+// Gross Fixed Capital Formation (% of GDP) — World Bank NE.GDI.FTOT.ZS
+const invData = {
+  years: [1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024],
+  ARG: [14.0, 14.6, 16.7, 19.1, 19.9, 17.9, 18.1, 19.4, 19.9, 18.0, 16.2, 14.2, 12.0, 15.1, 15.9, 17.4, 18.3, 19.5, 19.0, 15.6, 16.6, 17.2, 15.9, 16.3, 16.0, 15.6, 14.3, 15.2, 15.3, 14.2, 14.3, 17.3, 17.6, 18.5, 15.9],
+  BRA: [20.7, 18.1, 18.4, 19.3, 20.7, 20.3, 18.6, 19.1, 18.5, 17.0, 18.3, 18.4, 17.9, 16.6, 17.3, 17.1, 17.2, 18.0, 19.4, 19.1, 20.5, 20.6, 20.7, 20.9, 19.9, 17.8, 15.5, 14.6, 15.1, 15.5, 16.6, 17.9, 17.8, 16.4, 16.9],
+  CHL: [23.8, 20.7, 23.5, 26.2, 24.7, 25.6, 27.9, 28.6, 27.6, 22.4, 22.0, 22.5, 22.3, 22.1, 21.4, 23.4, 21.1, 22.0, 26.9, 24.1, 23.0, 24.7, 26.8, 26.3, 25.5, 25.5, 24.1, 22.3, 23.0, 24.5, 22.6, 23.3, 25.6, 24.2, 23.5],
+  URY: [12.1, 13.4, 14.2, 14.8, 14.5, 13.5, 14.0, 16.0, 16.4, 15.2, 14.3, 13.7, 12.4, 12.5, 14.4, 16.5, 18.2, 18.6, 20.6, 18.7, 19.1, 19.1, 22.2, 21.8, 21.4, 19.8, 16.9, 16.2, 14.8, 14.5, 15.4, 17.7, 19.0, 17.2, 16.2],
+  PRY: [16.8, 17.7, 17.4, 19.6, 21.8, 20.0, 19.5, 19.2, 16.6, 15.9, 15.4, 15.6, 15.2, 17.7, 18.3, 19.1, 19.3, 17.9, 18.9, 18.5, 21.3, 20.9, 19.5, 19.1, 19.8, 19.4, 19.1, 19.2, 19.9, 18.7, 19.9, 22.9, 22.1, 20.6, 21.0],
+};
+
+// ─── COLORS ─────────────────────────────────────────────────────────────
+const COLORS = {
+  ARG: { line: '#2563eb', bg: 'rgba(37,99,235,0.08)', label: 'Argentina' },
+  BRA: { line: '#16a34a', bg: 'rgba(22,163,74,0.08)', label: 'Brasil' },
+  CHL: { line: '#dc2626', bg: 'rgba(220,38,38,0.08)', label: 'Chile' },
+  URY: { line: '#d97706', bg: 'rgba(217,119,6,0.08)', label: 'Uruguay' },
+  PRY: { line: '#7c3aed', bg: 'rgba(124,58,237,0.08)', label: 'Paraguay' },
+};
+
+const countries = ['ARG','BRA','CHL','URY','PRY'];
+let activeCountries = new Set(countries);
+
+// ─── CHART DEFAULTS ──────────────────────────────────────────────────────
+const chartDefaults = {
+  responsive: true,
+  maintainAspectRatio: false,
+  interaction: { mode: 'index', intersect: false },
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: '#ffffff',
+      borderColor: '#dde1ee',
+      borderWidth: 1,
+      titleColor: '#1a1f36', bodyColor: '#1a1f36', titleFont: { family: 'DM Mono', size: 11 },
+      bodyFont: { family: 'DM Mono', size: 11 },
+      padding: 12,
+      callbacks: {}
+    }
+  },
+  scales: {
+    x: {
+      grid: { color: 'rgba(0,0,0,0.06)' },
+      ticks: { color: '#6b7394', font: { family: 'DM Mono', size: 10 } },
+      border: { color: '#dde1ee' }
+    },
+    y: {
+      grid: { color: 'rgba(0,0,0,0.06)' },
+      ticks: { color: '#6b7394', font: { family: 'DM Mono', size: 10 } },
+      border: { color: '#dde1ee' }
+    }
+  }
+};
+
+// ─── GDP CHART ───────────────────────────────────────────────────────────
+let gdpChart, expChart, scatterChart;
+let gdpFrom = 1990, gdpTo = 2024;
+let expFrom = 1995, expTo = 2024;
+let scatterYear = 2024;
+let animInterval = null;
+
+function makeGdpDatasets(from, to) {
+  const idxFrom = gdpData.years.indexOf(from);
+  const idxTo = gdpData.years.indexOf(to);
+  const labels = gdpData.years.slice(idxFrom, idxTo+1);
+  const datasets = countries.map(c => ({
+    label: COLORS[c].label,
+    data: gdpData[c].slice(idxFrom, idxTo+1),
+    borderColor: COLORS[c].line,
+    backgroundColor: COLORS[c].bg,
+    borderWidth: 2,
+    pointRadius: 0,
+    pointHoverRadius: 5,
+    tension: 0.35,
+    fill: false,
+    hidden: !activeCountries.has(c),
+  }));
+  return { labels, datasets };
+}
+
+function buildGdpChart() {
+  const ctx = document.getElementById('gdpChart').getContext('2d');
+  const { labels, datasets } = makeGdpDatasets(gdpFrom, gdpTo);
+  gdpChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      ...JSON.parse(JSON.stringify(chartDefaults)),
+      plugins: {
+        ...JSON.parse(JSON.stringify(chartDefaults.plugins)),
+        tooltip: {
+          ...JSON.parse(JSON.stringify(chartDefaults.plugins.tooltip)),
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: $${ctx.parsed.y.toLocaleString('es-AR', {maximumFractionDigits:0})}`
+          }
+        }
+      },
+      scales: {
+        x: { ...JSON.parse(JSON.stringify(chartDefaults.scales.x)) },
+        y: {
+          ...JSON.parse(JSON.stringify(chartDefaults.scales.y)),
+          ticks: {
+            color: '#6b7394',
+            font: { family: 'DM Mono', size: 10 },
+            callback: v => '$' + (v/1000).toFixed(0) + 'k'
+          }
+        }
+      }
+    }
+  });
+  buildGdpStats();
+}
+
+function buildGdpStats() {
+  const el = document.getElementById('gdp-stats');
+  el.innerHTML = countries.map(c => {
+    const vals = gdpData[c];
+    const last = vals[vals.length-1];
+    const prev = vals[vals.length-2];
+    const ch = ((last-prev)/prev*100).toFixed(1);
+    const chClass = ch >= 0 ? 'pos' : 'neg';
+    const chSign = ch >= 0 ? '+' : '';
+    return `<div class="stat-card" style="border-top-color:${COLORS[c].line}">
+      <div class="stat-label">${COLORS[c].label}</div>
+      <div class="stat-value" style="color:${COLORS[c].line}">$${(last/1000).toFixed(1)}k</div>
+      <div class="stat-change"><span class="${chClass}">${chSign}${ch}%</span> vs 2023</div>
+    </div>`;
+  }).join('');
+}
+
+function updateGdpRange() {
+  gdpFrom = parseInt(document.getElementById('gdp-from').value);
+  gdpTo = parseInt(document.getElementById('gdp-to').value);
+  if (gdpFrom >= gdpTo) { gdpTo = gdpFrom + 1; document.getElementById('gdp-to').value = gdpTo; }
+  document.getElementById('gdp-from-val').textContent = gdpFrom;
+  document.getElementById('gdp-to-val').textContent = gdpTo;
+  const { labels, datasets } = makeGdpDatasets(gdpFrom, gdpTo);
+  gdpChart.data.labels = labels;
+  gdpChart.data.datasets.forEach((ds, i) => { ds.data = datasets[i].data; });
+  gdpChart.update();
+}
+
+// ─── EXPENDITURE CHART ────────────────────────────────────────────────────
+function makeExpDatasets(from, to) {
+  const idxFrom = expData.years.indexOf(from);
+  const idxTo = expData.years.indexOf(to);
+
+  const labels = expData.years.slice(idxFrom, idxTo + 1);
+
+  const datasets = countries.map(c => ({
+    label: COLORS[c].label,
+    data: expData[c].slice(idxFrom, idxTo + 1),
+    borderColor: COLORS[c].line,
+    backgroundColor: COLORS[c].bg,
+    borderWidth: 2,
+    pointRadius: 0,
+    pointHoverRadius: 5,
+    tension: 0.35,
+    fill: false,
+    hidden: !activeCountries.has(c),
+    spanGaps: false // mantiene corte visual si hay null (ej: Brasil 1995)
+  }));
+
+  return { labels, datasets };
+}
+
+function buildExpChart() {
+  const ctx = document.getElementById('expChart').getContext('2d');
+  const { labels, datasets } = makeExpDatasets(expFrom, expTo);
+
+  expChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      ...JSON.parse(JSON.stringify(chartDefaults)),
+      plugins: {
+        ...JSON.parse(JSON.stringify(chartDefaults.plugins)),
+        tooltip: {
+          ...JSON.parse(JSON.stringify(chartDefaults.plugins.tooltip)),
+          callbacks: {
+            label: ctx => {
+              const y = ctx.parsed.y;
+              if (y == null) return ` ${ctx.dataset.label}: s/d`;
+              return ` ${ctx.dataset.label}: ${y.toFixed(1)}% del PBI`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { ...JSON.parse(JSON.stringify(chartDefaults.scales.x)) },
+        y: {
+          ...JSON.parse(JSON.stringify(chartDefaults.scales.y)),
+          ticks: {
+            color: '#6b7394',
+            font: { family: 'DM Mono', size: 10 },
+            callback: v => v + '%'
+          }
+        }
+      }
+    }
+  });
+
+  buildExpStats();
+}
+
+// Helpers para stats robustas ante nulls
+function lastNonNullIndex(arr) {
+  for (let i = arr.length - 1; i >= 0; i--) {
+    if (arr[i] != null && Number.isFinite(arr[i])) return i;
+  }
+  return -1;
+}
+
+function prevNonNullIndex(arr, fromIdx) {
+  for (let i = fromIdx - 1; i >= 0; i--) {
+    if (arr[i] != null && Number.isFinite(arr[i])) return i;
+  }
+  return -1;
+}
+
+function buildExpStats() {
+  const el = document.getElementById('exp-stats');
+
+  el.innerHTML = countries.map(c => {
+    const vals = expData[c];
+
+    const iLast = lastNonNullIndex(vals);
+    const iPrev = iLast > -1 ? prevNonNullIndex(vals, iLast) : -1;
+
+    const last = iLast > -1 ? vals[iLast] : null;
+    const prev = iPrev > -1 ? vals[iPrev] : null;
+
+    const yearLast = iLast > -1 ? expData.years[iLast] : '—';
+    const yearPrev = iPrev > -1 ? expData.years[iPrev] : '—';
+
+    let ch = null;
+    if (last != null && prev != null) ch = last - prev;
+
+    const chClass = (ch != null && ch >= 0) ? 'pos' : 'neg';
+    const chSign = (ch != null && ch >= 0) ? '+' : '';
+
+    return `<div class="stat-card" style="border-top-color:${COLORS[c].line}">
+      <div class="stat-label">${COLORS[c].label}</div>
+      <div class="stat-value" style="color:${COLORS[c].line}">
+        ${last != null ? last.toFixed(1) + '%' : 's/d'}
+      </div>
+      <div class="stat-change">
+        ${ch != null
+          ? `<span class="${chClass}">${chSign}${ch.toFixed(1)} pp</span> vs ${yearPrev}`
+          : `último dato: ${yearLast}`
+        }
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateExpRange() {
+  expFrom = parseInt(document.getElementById('exp-from').value);
+  expTo = parseInt(document.getElementById('exp-to').value);
+
+  if (expFrom >= expTo) {
+    expTo = expFrom + 1;
+    document.getElementById('exp-to').value = expTo;
+  }
+
+  document.getElementById('exp-from-val').textContent = expFrom;
+  document.getElementById('exp-to-val').textContent = expTo;
+
+  const { labels, datasets } = makeExpDatasets(expFrom, expTo);
+  expChart.data.labels = labels;
+
+  expChart.data.datasets.forEach((ds, i) => {
+    ds.data = datasets[i].data;
+    ds.hidden = datasets[i].hidden;
+  });
+
+  expChart.update();
+  buildExpStats(); // para que las tarjetas acompañen el rango/últimos datos
+}
+
+// ─── SCATTER CHART ────────────────────────────────────────────────────────
+function getScatterPoint(c, yr) {
+  const gdpIdx = gdpData.years.indexOf(yr);
+  const expIdx = expData.years.indexOf(yr);
+  if (gdpIdx === -1 || expIdx === -1) return null;
+  const x = expData[c][expIdx];
+  const y = gdpData[c][gdpIdx];
+  if (x == null || y == null) return null;
+  return { x, y };
+}
+
+function buildScatterChart() {
+  const ctx = document.getElementById('scatterChart').getContext('2d');
+  const datasets = countries.map(c => {
+    const pt = getScatterPoint(c, scatterYear);
+    return {
+      label: COLORS[c].label,
+      data: pt ? [pt] : [],
+      backgroundColor: COLORS[c].line + 'cc',
+      borderColor: COLORS[c].line,
+      borderWidth: 2,
+      pointRadius: 18,
+      pointHoverRadius: 22,
+      hidden: !activeCountries.has(c),
+    };
+  });
+
+  scatterChart = new Chart(ctx, {
+    type: 'scatter',
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#ffffff',
+          borderColor: '#dde1ee',
+          borderWidth: 1,
+          titleColor: '#1a1f36', bodyColor: '#1a1f36', titleFont: { family: 'DM Mono', size: 11 },
+          bodyFont: { family: 'DM Mono', size: 11 },
+          padding: 12,
+          callbacks: {
+            label: ctx => {
+            const x = ctx.parsed.x;
+            const y = ctx.parsed.y;
+            if (x == null || y == null) return [`${ctx.dataset.label}`, 's/d'];
+            return [`${ctx.dataset.label}`, `Gasto: ${x.toFixed(1)}% PIB`, `PIB pc: $${y.toLocaleString('es-AR', {maximumFractionDigits:0})}`];
+          }
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'Gasto Público (% del PBI)', color: '#6b7394', font: { family: 'DM Mono', size: 10 } },
+          grid: { color: 'rgba(0,0,0,0.06)' },
+          ticks: { color: '#6b7394', font: { family: 'DM Mono', size: 10 }, callback: v => v+'%' },
+          border: { color: '#dde1ee' },
+          min: 10, max: 55
+        },
+        y: {
+          title: { display: true, text: 'PBI per cápita PPP (USD 2021)', color: '#6b7394', font: { family: 'DM Mono', size: 10 } },
+          grid: { color: 'rgba(0,0,0,0.06)' },
+          ticks: { color: '#6b7394', font: { family: 'DM Mono', size: 10 }, callback: v => '$'+(v/1000).toFixed(0)+'k' },
+          border: { color: '#dde1ee' },
+          min: 5000, max: 40000
+        }
+      }
+    },
+    plugins: [{
+      id: 'labels',
+      afterDraw(chart) {
+        const { ctx } = chart;
+        chart.data.datasets.forEach((ds, i) => {
+          if (ds.hidden || ds.data.length === 0) return;
+          const meta = chart.getDatasetMeta(i);
+          if (!meta.visible) return;
+          const pt = meta.data[0];
+          ctx.save();
+          ctx.fillStyle = '#1a1f36';
+          ctx.font = '500 11px DM Mono, monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(countries[i], pt.x, pt.y - 22);
+          ctx.restore();
+        });
+      }
+    }]
+  });
+}
+
+function updateScatter() {
+  scatterYear = parseInt(document.getElementById('scatter-year').value);
+  document.getElementById('scatter-year-val').textContent = scatterYear;
+  countries.forEach((c, i) => {
+    const pt = getScatterPoint(c, scatterYear);
+    scatterChart.data.datasets[i].data = pt ? [pt] : [];
+  });
+  scatterChart.update();
+}
+
+function toggleAnimation() {
+  const btn = document.getElementById('anim-btn');
+  if (animInterval) {
+    clearInterval(animInterval);
+    animInterval = null;
+    btn.textContent = '▶ PLAY';
+  } else {
+    btn.textContent = '⏹ STOP';
+    let yr = 1995;
+    animInterval = setInterval(() => {
+      document.getElementById('scatter-year').value = yr;
+      scatterYear = yr;
+      document.getElementById('scatter-year-val').textContent = yr;
+      updateScatter();
+      yr++;
+      if (yr > 2024) {
+        clearInterval(animInterval);
+        animInterval = null;
+        btn.textContent = '▶ PLAY';
+      }
+    }, 200);
+  }
+}
+
+// ─── INVESTMENT CHART ────────────────────────────────────────────────────
+let invChart;
+let invFrom = 1990, invTo = 2024;
+
+function makeInvDatasets(from, to) {
+  const idxFrom = invData.years.indexOf(from);
+  const idxTo   = invData.years.indexOf(to);
+  const labels  = invData.years.slice(idxFrom, idxTo + 1);
+  const datasets = countries.map(c => ({
+    label: COLORS[c].label,
+    data: invData[c].slice(idxFrom, idxTo + 1),
+    borderColor: COLORS[c].line,
+    backgroundColor: COLORS[c].bg,
+    borderWidth: 2,
+    pointRadius: 0,
+    pointHoverRadius: 5,
+    tension: 0.35,
+    fill: false,
+    hidden: !activeCountries.has(c),
+  }));
+  return { labels, datasets };
+}
+
+function buildInvChart() {
+  const ctx = document.getElementById('invChart').getContext('2d');
+  const { labels, datasets } = makeInvDatasets(invFrom, invTo);
+  invChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      ...JSON.parse(JSON.stringify(chartDefaults)),
+      plugins: {
+        ...JSON.parse(JSON.stringify(chartDefaults.plugins)),
+        tooltip: {
+          ...JSON.parse(JSON.stringify(chartDefaults.plugins.tooltip)),
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}% del PBI`
+          }
+        }
+      },
+      scales: {
+        x: { ...JSON.parse(JSON.stringify(chartDefaults.scales.x)) },
+        y: {
+          ...JSON.parse(JSON.stringify(chartDefaults.scales.y)),
+          ticks: {
+            color: '#6b7394',
+            font: { family: 'DM Mono', size: 10 },
+            callback: v => v + '%'
+          }
+        }
+      }
+    }
+  });
+  buildInvStats();
+}
+
+function buildInvStats() {
+  const el = document.getElementById('inv-stats');
+  el.innerHTML = countries.map(c => {
+    const lastIdx = invData.years.indexOf(2024);
+    const prevIdx = invData.years.indexOf(2023);
+    const last = invData[c][lastIdx];
+    const prev = invData[c][prevIdx];
+    const ch = (last - prev).toFixed(1);
+    const chClass = ch >= 0 ? 'pos' : 'neg';
+    const chSign  = ch >= 0 ? '+' : '';
+    return `<div class="stat-card" style="border-top-color:${COLORS[c].line}">
+      <div class="stat-label">${COLORS[c].label}</div>
+      <div class="stat-value" style="color:${COLORS[c].line}">${last}%</div>
+      <div class="stat-change"><span class="${chClass}">${chSign}${ch} pp</span> vs 2023</div>
+    </div>`;
+  }).join('');
+}
+
+function updateInvRange() {
+  invFrom = parseInt(document.getElementById('inv-from').value);
+  invTo   = parseInt(document.getElementById('inv-to').value);
+  if (invFrom >= invTo) { invTo = invFrom + 1; document.getElementById('inv-to').value = invTo; }
+  document.getElementById('inv-from-val').textContent = invFrom;
+  document.getElementById('inv-to-val').textContent   = invTo;
+  const { labels, datasets } = makeInvDatasets(invFrom, invTo);
+  invChart.data.labels = labels;
+  invChart.data.datasets.forEach((ds, i) => { ds.data = datasets[i].data; });
+  invChart.update();
+}
+
+// Gross Domestic Savings (% of GDP) — World Bank NY.GDS.TOTL.ZS
+const savData = {
+  years: [1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024],
+  ARG: [19.7, 16.2, 15.2, 17.3, 16.9, 18.1, 19.0, 18.6, 18.5, 16.1, 16.9, 16.9, 25.9, 25.4, 24.6, 24.8, 24.3, 24.5, 23.3, 21.1, 20.6, 20.1, 18.5, 17.2, 17.7, 16.0, 16.6, 15.6, 14.7, 17.4, 17.4, 21.1, 18.4, 18.1, 18.4],
+  BRA: [21.4, 20.5, 21.4, 22.3, 22.5, 15.4, 15.1, 15.2, 15.8, 15.5, 16.6, 16.5, 18.3, 19.1, 21.3, 20.6, 20.5, 21.2, 21.4, 18.4, 20.8, 21.1, 20.1, 19.4, 17.9, 16.3, 15.4, 15.3, 15.5, 14.9, 16.7, 20.1, 18.5, 18.0, 17.3],
+  CHL: [29.0, 27.8, 26.1, 25.0, 26.0, 28.0, 27.9, 27.5, 25.1, 24.5, 25.3, 25.6, 26.1, 27.8, 30.7, 31.6, 36.2, 35.6, 30.5, 30.5, 30.9, 29.5, 28.3, 26.5, 25.5, 24.6, 23.5, 23.3, 23.1, 23.1, 25.5, 23.2, 21.8, 24.3, 26.8],
+  URY: [17.6, 18.0, 16.2, 15.2, 15.3, 15.3, 15.1, 14.1, 14.5, 11.9, 11.1, 11.6, 14.3, 18.3, 20.2, 19.6, 18.1, 18.5, 18.4, 20.4, 20.4, 20.5, 19.7, 19.5, 19.2, 19.3, 22.8, 21.4, 19.9, 20.2, 20.9, 25.8, 24.3, 20.9, 20.7],
+  PRY: [30.9, 31.7, 28.7, 25.9, 23.0, 27.5, 24.6, 23.9, 27.8, 27.0, 25.4, 26.6, 33.6, 33.8, 31.3, 31.1, 29.8, 29.1, 26.3, 24.3, 26.9, 26.6, 22.5, 26.1, 24.5, 24.4, 26.3, 25.9, 24.4, 22.6, 23.8, 25.2, 22.7, 21.9, 20.4],
+};
+
+// ─── SAVINGS CHART ────────────────────────────────────────────────────────
+let savChart;
+let savFrom = 1990, savTo = 2024;
+
+function makeSavDatasets(from, to) {
+  const idxFrom = savData.years.indexOf(from);
+  const idxTo   = savData.years.indexOf(to);
+  const labels  = savData.years.slice(idxFrom, idxTo + 1);
+  const datasets = countries.map(c => ({
+    label: COLORS[c].label,
+    data: savData[c].slice(idxFrom, idxTo + 1),
+    borderColor: COLORS[c].line,
+    backgroundColor: COLORS[c].bg,
+    borderWidth: 2,
+    pointRadius: 0,
+    pointHoverRadius: 5,
+    tension: 0.35,
+    fill: false,
+    hidden: !activeCountries.has(c),
+  }));
+  return { labels, datasets };
+}
+
+function buildSavChart() {
+  const ctx = document.getElementById('savChart').getContext('2d');
+  const { labels, datasets } = makeSavDatasets(savFrom, savTo);
+  savChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      ...JSON.parse(JSON.stringify(chartDefaults)),
+      plugins: {
+        ...JSON.parse(JSON.stringify(chartDefaults.plugins)),
+        tooltip: {
+          ...JSON.parse(JSON.stringify(chartDefaults.plugins.tooltip)),
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}% del PBI`
+          }
+        }
+      },
+      scales: {
+        x: { ...JSON.parse(JSON.stringify(chartDefaults.scales.x)) },
+        y: {
+          ...JSON.parse(JSON.stringify(chartDefaults.scales.y)),
+          ticks: {
+            color: '#6b7394',
+            font: { family: 'DM Mono', size: 10 },
+            callback: v => v + '%'
+          }
+        }
+      }
+    }
+  });
+  buildSavStats();
+}
+
+function buildSavStats() {
+  const el = document.getElementById('sav-stats');
+  el.innerHTML = countries.map(c => {
+    const lastIdx = savData.years.indexOf(2024);
+    const prevIdx = savData.years.indexOf(2023);
+    const last = savData[c][lastIdx];
+    const prev = savData[c][prevIdx];
+    const ch = (last - prev).toFixed(1);
+    const chClass = parseFloat(ch) >= 0 ? 'pos' : 'neg';
+    const chSign  = parseFloat(ch) >= 0 ? '+' : '';
+    return `<div class="stat-card" style="border-top-color:${COLORS[c].line}">
+      <div class="stat-label">${COLORS[c].label}</div>
+      <div class="stat-value" style="color:${COLORS[c].line}">${last}%</div>
+      <div class="stat-change"><span class="${chClass}">${chSign}${ch} pp</span> vs 2023</div>
+    </div>`;
+  }).join('');
+}
+
+function updateSavRange() {
+  savFrom = parseInt(document.getElementById('sav-from').value);
+  savTo   = parseInt(document.getElementById('sav-to').value);
+  if (savFrom >= savTo) { savTo = savFrom + 1; document.getElementById('sav-to').value = savTo; }
+  document.getElementById('sav-from-val').textContent = savFrom;
+  document.getElementById('sav-to-val').textContent   = savTo;
+  const { labels, datasets } = makeSavDatasets(savFrom, savTo);
+  savChart.data.labels = labels;
+  savChart.data.datasets.forEach((ds, i) => { ds.data = datasets[i].data; });
+  savChart.update();
+}
+
+// ─── TABS ────────────────────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ─── COUNTRY TOGGLE ──────────────────────────────────────────────────────
+function toggleCountry(c, el) {
+  if (activeCountries.has(c)) {
+    activeCountries.delete(c);
+    el.classList.add('inactive');
+  } else {
+    activeCountries.add(c);
+    el.classList.remove('inactive');
+  }
+  // Update all charts
+  const cIdx = countries.indexOf(c);
+  if (gdpChart) {
+    gdpChart.data.datasets[cIdx].hidden = !activeCountries.has(c);
+    gdpChart.update();
+  }
+  if (expChart) {
+    expChart.data.datasets[cIdx].hidden = !activeCountries.has(c);
+    expChart.update();
+  }
+  if (invChart) {
+    invChart.data.datasets[cIdx].hidden = !activeCountries.has(c);
+    invChart.update();
+  }
+  if (savChart) {
+    savChart.data.datasets[cIdx].hidden = !activeCountries.has(c);
+    savChart.update();
+  }
+  if (scatterChart) {
+    scatterChart.data.datasets[cIdx].hidden = !activeCountries.has(c);
+    scatterChart.update();
+  }
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  buildGdpChart();
+  buildExpChart();
+  buildInvChart();
+  buildSavChart();
+  buildScatterChart();
+});
+</script>
+</body>
+</html>
